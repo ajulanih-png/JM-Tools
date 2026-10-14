@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">JM Tools</string>
+    <style name="Theme.JMOptimizer" parent="android:Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">#08080A</item>
+        <item name="android:navigationBarColor">#08080A</item>
+        <item name="android:windowBackground">#08080A</item>
+    </style>
+</resources>
