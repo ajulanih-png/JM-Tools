@@ -21,3 +21,41 @@ jobs:
         with:
           name: JM-Tools-apk
           path: app/build/outputs/apk/release/*.apk
+
+      # ---- Diagnosa: jalankan APK di emulator dan ambil log crash ----
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Test di emulator
+        continue-on-error: true
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 33
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          script: |
+            adb install -r app/build/outputs/apk/release/app-release.apk
+            adb logcat -c
+            adb shell am start -n com.JM.Optimizer/.MainActivity
+            sleep 20
+            adb logcat -d > logcat.txt
+            adb shell pidof com.JM.Optimizer > pid.txt || echo "APP TIDAK BERJALAN" > pid.txt
+      - name: Tampilkan hasil
+        if: always()
+        run: |
+          {
+            echo "## Hasil tes emulator"
+            echo "Status proses: $(cat pid.txt 2>/dev/null)"
+            echo '```'
+            grep -n -A30 "FATAL EXCEPTION" logcat.txt 2>/dev/null | head -70
+            echo '```'
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: logcat
+          path: logcat.txt
+          if-no-files-found: ignore
